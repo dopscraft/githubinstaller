@@ -1,0 +1,68 @@
+--[[
+Downloads a repository from github.
+This script has no dependencies, so that it can
+be used to install things from scratch.
+]]
+local args = { ... }
+ 
+function urlForFile(repo, file)
+  return "https://raw.githubusercontent.com/dopscraft/"
+    .. repo .. "/master/" .. file
+end
+ 
+function run()
+  if not args[2] then
+    print("githubinstall <repository> <destination>")
+    print("Downloads the contents of a github repository to the specified folder")
+    return
+  end
+  local repo = args[1]
+  local target = args[2]
+  if not fs.exists(target) then
+    fs.makeDir(target)
+  elseif not fs.isDir(target) then
+    print("Target location is not a directory")
+    return
+  end
+  local files = fs.list(target)
+  if next(files) then
+    print("Target location is not empty")
+    return
+  end
+  -- Get file list.
+  local url = urlForFile(repo, "filelist")
+  print("downloading filelist")
+  local fileList = http.get(url)
+  if not fileList or fileList.getResponseCode() ~= 200 then
+    print("Unable to download filelist from repository")
+    return
+  end
+  local files = {}
+  while true do
+    local line = fileList.readLine()
+    if not line then
+      break
+    end
+    table.insert(files, line)
+  end
+  -- Download each file to the specified folder.
+  for k,v in pairs(files) do
+    print(v)
+    url = urlForFile(repo, v)
+    local remoteFile = http.get(url)
+    if not remoteFile or remoteFile.getResponseCode() ~= 200 then
+      print("Error downloading " .. v)
+    else
+      local localFile = fs.open(fs.combine(target, v), "w")
+      if not localFile then
+        print("Error writing " .. v)
+      else
+        localFile.write(remoteFile.readAll())
+        localFile.close()
+      end
+      remoteFile.close()
+    end
+  end
+  print("Downloaded " .. repo)
+end
+
