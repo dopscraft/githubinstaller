@@ -5,19 +5,30 @@ be used to install things from scratch.
 ]]
 local args = { ... }
  
-function urlForFile(repo, file)
-  return "https://raw.githubusercontent.com/dopscraft/"
-    .. repo .. "/master/" .. file
+function urlForFile(repo, file, branch)
+  if branch == nil then
+    branch = "master"
+  end
+  local path = "https://raw.githubusercontent.com/dopscraft/"
+    .. repo .. "/" .. branch .. "/" .. file
+  return path
 end
  
 function run()
   if not args[2] then
-    print("githubinstall <repository> <destination>")
+    print("githubinstall <repository> [<branch>] <destination>")
     print("Downloads the contents of a github repository to the specified folder")
     return
   end
   local repo = args[1]
-  local target = args[2]
+  local target
+  local branch = "master"
+  if args[3] then
+    branch = args[2]
+    target = args[3]
+  else
+    target = args[2]
+  end
   if not fs.exists(target) then
     fs.makeDir(target)
   elseif not fs.isDir(target) then
@@ -30,7 +41,7 @@ function run()
     return
   end
   -- Get file list.
-  local url = urlForFile(repo, "filelist")
+  local url = urlForFile(repo, "filelist", branch)
   print("downloading filelist")
   local fileList = http.get(url)
   if not fileList or fileList.getResponseCode() ~= 200 then
@@ -48,7 +59,7 @@ function run()
   -- Download each file to the specified folder.
   for k,v in pairs(files) do
     print(v)
-    url = urlForFile(repo, v)
+    url = urlForFile(repo, v, branch)
     local remoteFile = http.get(url)
     if not remoteFile or remoteFile.getResponseCode() ~= 200 then
       print("Error downloading " .. v)
@@ -65,4 +76,4 @@ function run()
   end
   print("Downloaded " .. repo)
 end
-
+run()
