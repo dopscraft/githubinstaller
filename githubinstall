@@ -54,7 +54,9 @@ function run()
     if not line then
       break
     end
-    table.insert(files, line)
+    if line ~= "" then
+      table.insert(files, line)
+    end
   end
   -- Download each file to the specified folder.
   for k,v in pairs(files) do
